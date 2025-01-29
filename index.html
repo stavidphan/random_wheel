@@ -1,3 +1,5 @@
+<!-- thieu responsive; thieu mui ten; -->
+
 <!doctype html>
 <html>
   <head>
@@ -85,16 +87,58 @@
       #youtubePlayer {
         display: none;
       }
+
+      .history-container {
+        position: absolute;
+        right: 20px;
+        top: 300px;
+        width: 300px;
+        height: 500px;
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        overflow-y: auto;
+      }
+    
+      .history-title {
+        text-align: center;
+        font-size: 24px;
+        color: #dc0f0f;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+      }
+    
+      .history-item {
+        padding: 10px;
+        margin: 5px 0;
+        background: #fff3e0;
+        border-radius: 5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        animation: slideIn 0.3s ease;
+      }
+    
+      @keyframes slideIn {
+        from { transform: translateX(100%); }
+        to { transform: translateX(0); }
+      }
     </style>
   </head>
 
   <body>
-    <div class="arrow"></div>
+    <!-- <div class="arrow"></div> -->
     
     <div id="spin_the_wheel">
       <canvas id="wheel" width="800" height="800"></canvas>
       <button id="spin"></button>
     </div>
+
+    <div class="history-container">
+        <div class="history-title">GIẢI ĐÃ QUAY</div>
+        <div id="historyList"></div>
+      </div>
 
     <div class="settings-menu">
       <button class="settings-btn">⚙️ Cài đặt</button>
@@ -109,19 +153,40 @@
 
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
-    const sectors = [
-        { color: "#FFBC03", text: "#333333", label: "Lì xì 10k" },
-        { color: "#FF5A10", text: "#333333", label: "Ăn miễn phí" },
+        let prizeHistory = [];
+
+        function updateHistory(sector) {
+            const historyList = document.getElementById('historyList');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            historyItem.innerHTML = `
+              <span>${sector.label}</span>
+              <small>${timestamp}</small>
+            `;
+            
+            // Thêm vào đầu danh sách
+            historyList.insertBefore(historyItem, historyList.firstChild);
+            
+            // Lưu vào mảng
+            prizeHistory.unshift({
+              label: sector.label,
+              time: timestamp,
+              color: sector.color
+            });
+          }
+          
+        const sectors = [
+        { color: "#FF69B4", text: "#333333", label: "Lì xì 40k" },
+        { color: "#FF6347", text: "#333333", label: "Lì xì 50k" },
         { color: "#FFD700", text: "#333333", label: "Lì xì 50k" },
-        { color: "#FF4500", text: "#333333", label: "Hát karaoke" },
-        { color: "#FF6347", text: "#333333", label: "Lì xì 100k" },
-        { color: "#ADFF2F", text: "#333333", label: "Dọn nhà" },
-        { color: "#40E0D0", text: "#333333", label: "Lì xì 20k" },
-        { color: "#FF69B4", text: "#333333", label: "Chúc tết hài hước" },
+        { color: "#FF4500", text: "#333333", label: "Lì xì 60k" },
+        { color: "#ADFF2F", text: "#333333", label: "Lì xì 70k" }
     ];
 
     // YouTube Player Variables
-    let player;
+    let player; 
     let isSpinning = false; // Thêm biến để theo dõi trạng thái quay
     const SPIN_SOUND_ID = '40vHCH6l2lM';
     const WIN_SOUND_ID = 'lmnIVkrkEd4';
@@ -204,14 +269,14 @@
     };
 
     const rand = (m, M) => Math.random() * (M - m) + m;
-    const tot = sectors.length;
+    let tot = sectors.length;
     const spinEl = document.querySelector("#spin");
     const ctx = document.querySelector("#wheel").getContext("2d");
     const dia = ctx.canvas.width;
     const rad = dia / 2;
     const PI = Math.PI;
     const TAU = 2 * PI;
-    const arc = TAU / sectors.length;
+    let arc = TAU / tot;
     const friction = 0.993;
     let angVel = 0;
     let ang = 0;
@@ -292,6 +357,24 @@
             colors: ['#ff0000', '#00ff00', '#0000ff']
         };
         confetti(confettiSettings);
+
+        updateHistory(sector);
+        
+        // Chỉ xóa sector nếu còn nhiều hơn 1 sector
+        if (sectors.length > 1) {
+            const index = sectors.indexOf(sector);
+            if (index !== -1) {
+                sectors.splice(index, 1);
+                // Cập nhật lại thông số vòng quay
+                tot = sectors.length;
+                arc = TAU / tot;
+                updateWheel();
+            }
+        }
+        
+        isSpinning = false;
+        stopSpinSound();
+        playWinSound();
     });
 
     function addLabel(label, color = "#FFD700", text = "#333333") {
@@ -308,7 +391,8 @@
     function updateWheel() {
         ctx.clearRect(0, 0, dia, dia);
         sectors.forEach(drawSector);
-        rotate();
+        ang = 0; // Reset góc quay về vị trí ban đầu
+        rotate(); // Cập nhật hiển thị
     }
 
     init();
